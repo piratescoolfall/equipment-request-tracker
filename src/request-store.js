@@ -8,6 +8,8 @@ export class RequestValidationError extends Error {
   }
 }
 
+const PRIORITIES = ["Low", "Medium", "High"];
+
 function clean(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -18,6 +20,14 @@ export function validateRequest(input = {}) {
   if (!clean(input.requester)) errors.requester = "Enter the requester name.";
   if (!clean(input.department)) errors.department = "Select a department.";
   if (!clean(input.equipment)) errors.equipment = "Enter the equipment needed.";
+
+  const priority = clean(input.priority);
+  if (!priority) {
+    errors.priority = "Select a priority.";
+  } else if (!PRIORITIES.includes(priority)) {
+    errors.priority = "Select a valid priority.";
+  }
+
   if (!clean(input.neededBy)) errors.neededBy = "Select the date needed.";
   if (!clean(input.reason)) errors.reason = "Enter a business reason.";
 
@@ -42,6 +52,7 @@ export function createRequest(input, options = {}) {
     requester: clean(input.requester),
     department: clean(input.department),
     equipment: clean(input.equipment),
+    priority: clean(input.priority),
     neededBy: clean(input.neededBy),
     reason: clean(input.reason),
     createdAt: now.toISOString(),
@@ -79,6 +90,7 @@ function isRequestRecord(value) {
     typeof value.requester === "string" &&
     typeof value.department === "string" &&
     typeof value.equipment === "string" &&
+    (value.priority === undefined || typeof value.priority === "string") &&
     typeof value.neededBy === "string" &&
     typeof value.reason === "string" &&
     typeof value.createdAt === "string"
