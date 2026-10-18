@@ -53,3 +53,22 @@ As a manager, I want to view the highest-priority equipment requests without sea
 - Changing the existing request creation, editing, or deletion processes.
 
 **Open specification decisions (verify before implementation):** Which existing value is highest priority; how duplicate requests are identified; and whether invalid/missing priority warnings appear inline in **All Requests** or in a separate warning area.
+
+## Verification Results
+
+Verification date: 2026-10-18. **Pass** means the corresponding filtering behavior passed focused Node.js checks using a local copy of the filtering module; **Fail** means full application verification is not yet demonstrated, not necessarily that the behavior is defective. The complete repository test suite and browser UI could not be run because the repository could not be cloned in this environment (network/DNS failure).
+
+| Criterion | Result | Evidence / remaining check |
+| --- | --- | --- |
+| AC-01 Highest priority only | **Pass** | Focused test: only High records are returned in original order. |
+| AC-02 Restore all | **Pass** | Focused test: all records, including missing/invalid priorities, are returned. |
+| AC-03 No matching requests | **Fail** | Empty filtered array passed; browser empty-state rendering still requires UI verification. |
+| AC-04 Missing priority | **Pass** | Focused test: missing priority is classified; all-records view retains it. |
+| AC-05 Invalid priority | **Pass** | Focused test: unrecognized priority is classified; all-records view retains it. |
+| AC-06 Duplicates preserved | **Pass** | Focused test: duplicate IDs flagged without removing records. Duplicate rule: repeated nonempty string request ID. |
+| AC-07 No authorization regression | **Fail** | No login or privileged action was added, but end-to-end authorization regression was not exercised. |
+| AC-08 Failure handling | **Fail** | Filtering rejects invalid inputs; browser storage-read and UI failure paths require integration verification. |
+| AC-09 No new infrastructure | **Fail** | Static inspection confirms no database/login dependency was added, but full startup was not verified. |
+| AC-10 Regression and preservation | **Fail** | Focused tests confirm filtering does not mutate records; full existing workflow regression tests have not been run. |
+
+Focused local verification: **8 tests passed, 0 failed**. These tests exercise the filtering logic, not the complete checked-out repository. The implementation was adjusted to flag duplicate request IDs and to avoid overwriting unreadable browser storage; the existing damaged-storage test was updated accordingly. **Do not treat the five Fail rows as resolved until the complete `npm test` suite and browser checks pass.**
