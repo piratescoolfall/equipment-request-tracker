@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { filterRequests, priorityStatus } from "../src/priority-filter.js";
+import { duplicateIds, filterRequests, priorityStatus } from "../src/priority-filter.js";
 
 const records = [
   { id: "1", priority: "Low" },
@@ -43,4 +43,9 @@ test("switching filters never mutates or reorders original records", () => {
 
 test("unexpected invalid list input throws instead of modifying data", () => {
   assert.throws(() => filterRequests(null, true), TypeError);
+});
+
+test("duplicate IDs are flagged without removing either record", () => {
+  assert.deepEqual([...duplicateIds(records)], ["6"]);
+  assert.equal(filterRequests(records).length, records.length);
 });
