@@ -107,9 +107,10 @@ test("loadRequests preserves records saved before priority was added", () => {
   assert.deepEqual(loadRequests(storage), [legacyRequest]);
 });
 
-test("loadRequests safely handles damaged stored data", () => {
+test("loadRequests reports damaged stored data without overwriting it", () => {
   const storage = new MemoryStorage();
   storage.setItem(STORAGE_KEY, "not-json");
 
-  assert.deepEqual(loadRequests(storage), []);
+  assert.throws(() => loadRequests(storage), /Stored requests could not be read/);
+  assert.equal(storage.getItem(STORAGE_KEY), "not-json");
 });

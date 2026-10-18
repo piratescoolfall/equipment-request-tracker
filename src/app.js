@@ -5,6 +5,7 @@ import {
   loadRequests,
   saveRequests,
 } from "./request-store.js";
+import { duplicateIds, filterRequests, priorityStatus } from "./priority-filter.js";
 
 const form = document.querySelector("#request-form");
 const message = document.querySelector("#form-message");
@@ -13,8 +14,25 @@ const count = document.querySelector("#request-count");
 const emptyState = document.querySelector("#empty-state");
 const tableWrapper = document.querySelector("#request-table-wrapper");
 const tableBody = document.querySelector("#request-table-body");
+const filterSelect = document.querySelector("#priority-filter");
+const listMessage = document.querySelector("#list-message");
+let highestOnly = false;
 
-let requests = loadRequests();
+filterSelect.addEventListener("change", () => {
+  highestOnly = filterSelect.value === "high";
+  renderRequests();
+});
+
+let requests = [];
+let loadFailed = false;
+try {
+  requests = loadRequests();
+} catch (error) {
+  loadFailed = true;
+  listMessage.textContent = "Requests could not be loaded. Existing stored data has not been changed.";
+  form.querySelector('button[type="submit"]').disabled = true;
+  console.error(error);
+}
 
 neededByInput.min = new Date().toISOString().slice(0, 10);
 renderRequests();
@@ -48,20 +66,33 @@ form.addEventListener("submit", (event) => {
 });
 
 function renderRequests() {
-  const hasRequests = requests.length > 0;
-  count.textContent = `${requests.length} ${requests.length === 1 ? "request" : "requests"}`;
-  emptyState.hidden = hasRequests;
-  tableWrapper.hidden = !hasRequests;
-  tableBody.replaceChildren(...requests.map(createRequestRow));
+  try {
+    const visible = filterRequests(requests, highestOnly);
+    const duplicates = duplicateIds(requests);
+    count.textContent = `${visible.length} ${visible.length === 1 ? "request" : "requests"}`;
+    emptyState.hidden = visible.length > 0;
+    tableWrapper.hidden = visible.length === 0;
+    emptyState.querySelector("h3").textContent = highestOnly ? "No highest-priority requests" : "No requests yet";
+    emptyState.querySelector("p").textContent = highestOnly
+      ? "Switch to All Requests to see the full list."
+      : "Add the first equipment request using the form.";
+    tableBody.replaceChildren(...visible.map((request) => createRequestRow(request, duplicates)));
+    if (!loadFailed) listMessage.textContent = duplicates.size > 0
+      ? "Possible duplicate request IDs detected; all records are preserved."
+      : "";
+  } catch (error) {
+    listMessage.textContent = "The request list could not be filtered. Existing requests have not been changed.";
+    console.error(error);
+  }
 }
 
-function createRequestRow(request) {
+function createRequestRow(request, duplicates) {
   const row = document.createElement("tr");
   const values = [
     request.requester,
     request.department,
     request.equipment,
-    request.priority ?? "Not specified",
+    priorityStatus(request),
     formatDate(request.neededBy),
     request.reason,
     formatDateTime(request.createdAt),
@@ -73,6 +104,11 @@ function createRequestRow(request) {
     row.append(cell);
   }
 
+  if (duplicates.has(request.id)) {
+    const warning = document.createElement("span");
+    warning.textContent = " (Possible duplicate ID)";
+    row.cells[0].append(warning);
+  }
   return row;
 }
 

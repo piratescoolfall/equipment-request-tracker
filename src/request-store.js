@@ -72,8 +72,8 @@ export function loadRequests(storage = globalThis.localStorage) {
 
     const parsed = JSON.parse(stored);
     return Array.isArray(parsed) ? parsed.filter(isRequestRecord) : [];
-  } catch {
-    return [];
+  } catch (error) {
+    throw new Error("Stored requests could not be read.", { cause: error });
   }
 }
 
