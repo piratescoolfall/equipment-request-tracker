@@ -16,3 +16,11 @@ export function filterRequests(requests, highestOnly = false) {
     ? requests.filter((request) => priorityStatus(request) === HIGHEST_PRIORITY)
     : [...requests];
 }
+
+export function duplicateIds(requests) {
+  const counts = new Map();
+  for (const request of requests) {
+    if (typeof request?.id === "string") counts.set(request.id, (counts.get(request.id) ?? 0) + 1);
+  }
+  return new Set([...counts].filter(([, count]) => count > 1).map(([id]) => id));
+}
