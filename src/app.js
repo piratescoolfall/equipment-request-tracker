@@ -5,7 +5,7 @@ import {
   loadRequests,
   saveRequests,
 } from "./request-store.js";
-import { filterRequests, priorityStatus } from "./priority-filter.js";
+import { duplicateIds, filterRequests, priorityStatus } from "./priority-filter.js";
 
 const form = document.querySelector("#request-form");
 const message = document.querySelector("#form-message");
@@ -23,12 +23,14 @@ filterSelect.addEventListener("change", () => {
   renderRequests();
 });
 
-let requests;
+let requests = [];
+let loadFailed = false;
 try {
   requests = loadRequests();
 } catch (error) {
-  requests = [];
+  loadFailed = true;
   listMessage.textContent = "Requests could not be loaded. Existing stored data has not been changed.";
+  form.querySelector('button[type="submit"]').disabled = true;
   console.error(error);
 }
 
@@ -66,6 +68,7 @@ form.addEventListener("submit", (event) => {
 function renderRequests() {
   try {
     const visible = filterRequests(requests, highestOnly);
+    const duplicates = duplicateIds(requests);
     count.textContent = `${visible.length} ${visible.length === 1 ? "request" : "requests"}`;
     emptyState.hidden = visible.length > 0;
     tableWrapper.hidden = visible.length === 0;
@@ -73,14 +76,17 @@ function renderRequests() {
     emptyState.querySelector("p").textContent = highestOnly
       ? "Switch to All Requests to see the full list."
       : "Add the first equipment request using the form.";
-    tableBody.replaceChildren(...visible.map(createRequestRow));
+    tableBody.replaceChildren(...visible.map((request) => createRequestRow(request, duplicates)));
+    if (!loadFailed) listMessage.textContent = duplicates.size > 0
+      ? "Possible duplicate request IDs detected; all records are preserved."
+      : "";
   } catch (error) {
     listMessage.textContent = "The request list could not be filtered. Existing requests have not been changed.";
     console.error(error);
   }
 }
 
-function createRequestRow(request) {
+function createRequestRow(request, duplicates) {
   const row = document.createElement("tr");
   const values = [
     request.requester,
@@ -98,6 +104,11 @@ function createRequestRow(request) {
     row.append(cell);
   }
 
+  if (duplicates.has(request.id)) {
+    const warning = document.createElement("span");
+    warning.textContent = " (Possible duplicate ID)";
+    row.cells[0].append(warning);
+  }
   return row;
 }
 
